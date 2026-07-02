@@ -10,10 +10,12 @@ class InputBar(ctk.CTkFrame):
 
         self.send_callback = send_callback
 
-        self.entry = ctk.CTkEntry(
+        # -----------------------------
+        # Message Entry
+        # -----------------------------
+        self.entry = ctk.CTkTextbox(
             self,
-            placeholder_text="Type your message...",
-            height=45,
+            height=60,
             font=("Segoe UI", 15)
         )
 
@@ -25,26 +27,78 @@ class InputBar(ctk.CTkFrame):
             pady=10
         )
 
-        self.entry.bind("<Return>", lambda e: self.send())
+        self.entry.bind("<Return>", self.on_enter)
 
-        ctk.CTkButton(self, text="😊", width=45).pack(side="left", padx=5)
-        ctk.CTkButton(self, text="📎", width=45).pack(side="left", padx=5)
-        ctk.CTkButton(self, text="🎤", width=45).pack(side="left", padx=5)
+        # -----------------------------
+        # Buttons
+        # -----------------------------
+        self.emoji_btn = ctk.CTkButton(
+            self,
+            text="😊",
+            width=45
+        )
+        self.emoji_btn.pack(side="left", padx=5)
 
-        ctk.CTkButton(
+        self.attach_btn = ctk.CTkButton(
+            self,
+            text="📎",
+            width=45
+        )
+        self.attach_btn.pack(side="left", padx=5)
+
+        self.voice_btn = ctk.CTkButton(
+            self,
+            text="🎤",
+            width=45
+        )
+        self.voice_btn.pack(side="left", padx=5)
+
+        self.send_btn = ctk.CTkButton(
             self,
             text="➤",
             width=60,
             command=self.send
-        ).pack(side="right", padx=10)
+        )
 
+        self.send_btn.pack(
+            side="right",
+            padx=10
+        )
+
+    # -----------------------------
+    # Enter Key
+    # -----------------------------
+    def on_enter(self, event):
+
+        self.send()
+
+        return "break"
+
+    # -----------------------------
+    # Send Message
+    # -----------------------------
     def send(self):
 
-        message = self.entry.get().strip()
+        message = self.entry.get("1.0", "end").strip()
 
-        if message == "":
+        if not message:
             return
 
         self.send_callback(message)
 
-        self.entry.delete(0, "end")
+        self.entry.delete("1.0", "end")
+
+    # -----------------------------
+    # Enable / Disable
+    # -----------------------------
+    def disable(self):
+
+        self.entry.configure(state="disabled")
+        self.send_btn.configure(state="disabled")
+
+    def enable(self):
+
+        self.entry.configure(state="normal")
+        self.send_btn.configure(state="normal")
+
+        self.entry.focus()

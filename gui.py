@@ -32,9 +32,9 @@ class KrishAIApp(ctk.CTk):
 
         self.build_ui()
 
-    # -----------------------------
+    # -------------------------------------------------
     # Build UI
-    # -----------------------------
+    # -------------------------------------------------
 
     def build_ui(self):
 
@@ -70,9 +70,9 @@ class KrishAIApp(ctk.CTk):
 
         self.refresh_sidebar()
 
-    # -----------------------------
+    # -------------------------------------------------
     # Sidebar
-    # -----------------------------
+    # -------------------------------------------------
 
     def refresh_sidebar(self):
 
@@ -92,9 +92,9 @@ class KrishAIApp(ctk.CTk):
             self.current_chat
         )
 
-    # -----------------------------
+    # -------------------------------------------------
     # Load Chat
-    # -----------------------------
+    # -------------------------------------------------
 
     def load_chat(self, chat_id):
 
@@ -111,20 +111,29 @@ class KrishAIApp(ctk.CTk):
 
         self.refresh_sidebar()
 
-    # -----------------------------
+    # -------------------------------------------------
     # Send Message
-    # -----------------------------
+    # -------------------------------------------------
 
     def send_message(self, message):
 
+        # Disable typing while bot replies
+        self.input.disable()
+
+        # Show user message
         self.chat.add_user_message(message)
 
+        # Save message
         save_message(
             self.current_chat,
             "user",
             message
         )
 
+        # Update sidebar immediately
+        self.refresh_sidebar()
+
+        # Typing bubble
         typing = self.chat.add_bot_message(
             "Typing..."
         )
@@ -148,9 +157,9 @@ class KrishAIApp(ctk.CTk):
             daemon=True
         ).start()
 
-    # -----------------------------
+    # -------------------------------------------------
     # Finish Reply
-    # -----------------------------
+    # -------------------------------------------------
 
     def finish_reply(
         self,
@@ -170,9 +179,12 @@ class KrishAIApp(ctk.CTk):
 
         self.refresh_sidebar()
 
-    # -----------------------------
+        # Enable typing again
+        self.input.enable()
+
+    # -------------------------------------------------
     # New Chat
-    # -----------------------------
+    # -------------------------------------------------
 
     def new_chat(self):
 
