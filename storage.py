@@ -1,10 +1,15 @@
 import os
 import json
 import uuid
+from datetime import datetime
 
 DATA_FOLDER = "data/chats"
 
 os.makedirs(DATA_FOLDER, exist_ok=True)
+
+
+def current_time():
+    return datetime.now().strftime("%Y-%m-%d %H:%M")
 
 
 def create_chat():
@@ -16,36 +21,17 @@ def create_chat():
         f"{chat_id}.json"
     )
 
-    with open(filename, "w") as file:
-        json.dump([], file, indent=4)
+    chat = {
+        "title": "New Chat",
+        "created_at": current_time(),
+        "updated_at": current_time(),
+        "messages": []
+    }
+
+    with open(filename, "w", encoding="utf-8") as file:
+        json.dump(chat, file, indent=4)
 
     return chat_id
-
-
-def save_message(chat_id, sender, message):
-
-    filename = os.path.join(
-        DATA_FOLDER,
-        f"{chat_id}.json"
-    )
-
-    if os.path.exists(filename):
-
-        with open(filename, "r") as file:
-            history = json.load(file)
-
-    else:
-        history = []
-
-    history.append(
-        {
-            "sender": sender,
-            "message": message
-        }
-    )
-
-    with open(filename, "w") as file:
-        json.dump(history, file, indent=4)
 
 
 def load_chat(chat_id):
@@ -56,10 +42,42 @@ def load_chat(chat_id):
     )
 
     if not os.path.exists(filename):
-        return []
+        return None
 
-    with open(filename, "r") as file:
+    with open(filename, "r", encoding="utf-8") as file:
         return json.load(file)
+
+
+def save_message(chat_id, sender, message):
+
+    filename = os.path.join(
+        DATA_FOLDER,
+        f"{chat_id}.json"
+    )
+
+    chat = load_chat(chat_id)
+
+    if chat is None:
+        return
+
+    chat["messages"].append(
+        {
+            "sender": sender,
+            "message": message
+        }
+    )
+
+    chat["updated_at"] = current_time()
+
+    # First user message becomes chat title
+    if (
+        chat["title"] == "New Chat"
+        and sender == "user"
+    ):
+        chat["title"] = message[:30]
+
+    with open(filename, "w", encoding="utf-8") as file:
+        json.dump(chat, file, indent=4)
 
 
 def list_chats():
@@ -69,6 +87,24 @@ def list_chats():
     for file in os.listdir(DATA_FOLDER):
 
         if file.endswith(".json"):
-            chats.append(file.replace(".json", ""))
+
+            chat_id = file.replace(".json", "")
+
+            chat = load_chat(chat_id)
+
+            if chat:
+
+                chats.append(
+                    {
+                        "id": chat_id,
+                        "title": chat["title"],
+                        "updated_at": chat["updated_at"]
+                    }
+                )
+
+    chats.sort(
+        key=lambda x: x["updated_at"],
+        reverse=True
+    )
 
     return chats
