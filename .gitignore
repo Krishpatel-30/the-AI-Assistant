@@ -1,0 +1,41 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Virtual Environment
+venv/
+.env
+
+# VS Code
+.vscode/
+
+# Build
+build/
+dist/
+
+# Windows
+Thumbs.db
+Desktop.ini
+
+# Logs
+*.log
+
+# Python cache
+.pytest_cache/
+
+# IDE
+.idea/
+
+# Temporary
+*.tmp
+
+# Mac
+.DS_Store
+
+# Data (optional)
+data/chats/
+
+# Executables
+*.exe
