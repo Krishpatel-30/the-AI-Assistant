@@ -12,6 +12,7 @@ class ChatArea(ctk.CTkFrame):
             text="🤖 KRISH AI ASSISTANT",
             font=("Segoe UI", 28, "bold")
         )
+
         title.pack(pady=20)
 
         self.messages = ctk.CTkScrollableFrame(self)
@@ -23,6 +24,10 @@ class ChatArea(ctk.CTkFrame):
             pady=10
         )
 
+    # -----------------------------
+    # Bot Bubble
+    # -----------------------------
+
     def add_bot_message(self, message):
 
         bubble = ChatBubble(
@@ -31,11 +36,19 @@ class ChatArea(ctk.CTkFrame):
             "bot"
         )
 
-        bubble.pack(fill="x", padx=10, pady=5)
+        bubble.pack(
+            fill="x",
+            padx=10,
+            pady=5
+        )
 
         self.messages._parent_canvas.yview_moveto(1.0)
 
         return bubble
+
+    # -----------------------------
+    # User Bubble
+    # -----------------------------
 
     def add_user_message(self, message):
 
@@ -45,8 +58,41 @@ class ChatArea(ctk.CTkFrame):
             "user"
         )
 
-        bubble.pack(fill="x", padx=10, pady=5)
+        bubble.pack(
+            fill="x",
+            padx=10,
+            pady=5
+        )
 
         self.messages._parent_canvas.yview_moveto(1.0)
 
         return bubble
+
+    # -----------------------------
+    # Clear Chat
+    # -----------------------------
+
+    def clear_messages(self):
+
+        for widget in self.messages.winfo_children():
+            widget.destroy()
+
+    # -----------------------------
+    # Load Messages
+    # -----------------------------
+
+    def load_messages(self, messages):
+
+        self.clear_messages()
+
+        for msg in messages:
+
+            if msg["sender"] == "user":
+                self.add_user_message(
+                    msg["message"]
+                )
+
+            else:
+                self.add_bot_message(
+                    msg["message"]
+                )
