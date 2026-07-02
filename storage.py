@@ -1,40 +1,83 @@
-import json
 import os
+import json
+import uuid
 
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-DATA_DIR = os.path.join(BASE_DIR, "data")
-FILE = os.path.join(DATA_DIR, "history.json")
+DATA_FOLDER = "data/chats"
 
-
-def load_history():
-
-    if not os.path.exists(DATA_DIR):
-        os.makedirs(DATA_DIR)
-
-    if not os.path.exists(FILE):
-        with open(FILE, "w", encoding="utf-8") as f:
-            json.dump([], f)
-
-    try:
-        with open(FILE, "r", encoding="utf-8") as f:
-            return json.load(f)
-
-    except json.JSONDecodeError:
-        with open(FILE, "w", encoding="utf-8") as f:
-            json.dump([], f)
-        return []
+os.makedirs(DATA_FOLDER, exist_ok=True)
 
 
-def save_message(sender, message):
+def create_chat():
 
-    history = load_history()
+    chat_id = str(uuid.uuid4())[:8]
+
+    filename = os.path.join(
+        DATA_FOLDER,
+        f"{chat_id}.json"
+    )
+
+    with open(filename, "w") as file:
+        json.dump([], file, indent=4)
+
+    return chat_id
+
+
+def save_message(chat_id, sender, message):
+
+    filename = os.path.join(
+        DATA_FOLDER,
+        f"{chat_id}.json"
+    )
+
+    if os.path.exists(filename):
+
+        with open(filename, "r") as file:
+            history = json.load(file)
+
+    else:
+        history = []
 
     history.append({
+
         "sender": sender,
+
         "message": message
+
     })
 
-    with open(FILE, "w", encoding="utf-8") as f:
-        json.dump(history, f, indent=4)
+    with open(filename, "w") as file:
 
-    print("Saved:", sender, message)
+        json.dump(
+            history,
+            file,
+            indent=4
+        )
+
+
+def load_chat(chat_id):
+
+    filename = os.path.join(
+        DATA_FOLDER,
+        f"{chat_id}.json"
+    )
+
+    if not os.path.exists(filename):
+        return []
+
+    with open(filename, "r") as file:
+        return json.load(file)
+
+
+def list_chats():
+
+    chats = []
+
+    for file in os.listdir(DATA_FOLDER):
+
+        if file.endswith(".json"):
+
+            chats.append(
+                file.replace(".json", "")
+            )
+
+    return chats
