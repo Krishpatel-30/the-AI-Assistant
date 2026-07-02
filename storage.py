@@ -37,21 +37,15 @@ def save_message(chat_id, sender, message):
     else:
         history = []
 
-    history.append({
-
-        "sender": sender,
-
-        "message": message
-
-    })
+    history.append(
+        {
+            "sender": sender,
+            "message": message
+        }
+    )
 
     with open(filename, "w") as file:
-
-        json.dump(
-            history,
-            file,
-            indent=4
-        )
+        json.dump(history, file, indent=4)
 
 
 def load_chat(chat_id):
@@ -75,9 +69,6 @@ def list_chats():
     for file in os.listdir(DATA_FOLDER):
 
         if file.endswith(".json"):
-
-            chats.append(
-                file.replace(".json", "")
-            )
+            chats.append(file.replace(".json", ""))
 
     return chats

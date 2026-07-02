@@ -1,14 +1,14 @@
 from responses import responses
-from datetime import datetime
 from jokes import random_joke
 from quotes import random_quote
 from calculator import calculate
+from datetime import datetime
 
-user_name = "User"
+username = "User"
 
 def get_response(user):
 
-    global user_name
+    global username
 
     user = user.lower().strip()
 
@@ -30,19 +30,19 @@ def get_response(user):
     elif user in ["quote", "quotes"]:
         return random_quote()
 
+    elif user == "calculator":
+        return "Example: calculate 10+20"
+
     elif user.startswith("calculate"):
         expression = user.replace("calculate", "").strip()
         return calculate(expression)
 
-    elif user == "calculator":
-        return "Type: calculate 10+20"
-
     elif user.startswith("my name is"):
-        user_name = user.replace("my name is", "").strip().title()
-        return f"Nice to meet you {user_name}! 😊"
+        username = user.replace("my name is", "").strip().title()
+        return f"Nice to meet you {username}! 😊"
 
     elif user in responses:
         return responses[user]
 
     else:
-        return "Sorry, I don't understand that."
+        return "Sorry, I don't understand."

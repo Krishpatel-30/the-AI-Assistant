@@ -26,7 +26,7 @@ Available Commands
 • what is your name
 • time
 • date
-• calculator
+• calculator(calculate 5+6)
 • joke
 • quote
 • my name is <your name>
