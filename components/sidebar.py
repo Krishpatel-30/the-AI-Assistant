@@ -3,14 +3,23 @@ import customtkinter as ctk
 
 class Sidebar(ctk.CTkFrame):
 
-    def __init__(self, master, new_chat_callback):
+    def __init__(
+        self,
+        master,
+        new_chat_callback,
+        rename_callback=None,
+        delete_callback=None
+    ):
         super().__init__(
             master,
-            width=240,
+            width=260,
             corner_radius=0
         )
 
         self.pack_propagate(False)
+
+        self.rename_callback = rename_callback
+        self.delete_callback = delete_callback
 
         self.chat_buttons = {}
 
@@ -47,8 +56,7 @@ class Sidebar(ctk.CTkFrame):
         self.chat_list.pack(
             fill="both",
             expand=True,
-            padx=10,
-            pady=(0, 10)
+            padx=10
         )
 
         self.settings_btn = ctk.CTkButton(
@@ -64,6 +72,8 @@ class Sidebar(ctk.CTkFrame):
             pady=20
         )
 
+    # ------------------------------------
+
     def clear_chat_list(self):
 
         self.chat_buttons.clear()
@@ -71,28 +81,88 @@ class Sidebar(ctk.CTkFrame):
         for widget in self.chat_list.winfo_children():
             widget.destroy()
 
-    def add_chat_button(self, chat_id, title, command):
+    # ------------------------------------
 
-        button = ctk.CTkButton(
+    def add_chat_button(
+        self,
+        chat_id,
+        title,
+        command
+    ):
+
+        row = ctk.CTkFrame(
             self.chat_list,
+            fg_color="transparent"
+        )
+
+        row.pack(
+            fill="x",
+            pady=3
+        )
+
+        btn = ctk.CTkButton(
+            row,
             text=f"💬 {title}",
             anchor="w",
             command=command,
             height=38
         )
 
-        button.pack(
+        btn.pack(
+            side="left",
             fill="x",
-            pady=3
+            expand=True
         )
 
-        self.chat_buttons[chat_id] = button
+        edit = ctk.CTkButton(
+            row,
+            text="✏️",
+            width=32,
+            height=32,
+            command=lambda: (
+                self.rename_callback(chat_id)
+                if self.rename_callback
+                else None
+            )
+        )
+
+        edit.pack(
+            side="left",
+            padx=(4, 2)
+        )
+
+        delete = ctk.CTkButton(
+            row,
+            text="🗑️",
+            width=32,
+            height=32,
+            fg_color="#b91c1c",
+            hover_color="#991b1b",
+            command=lambda: (
+                self.delete_callback(chat_id)
+                if self.delete_callback
+                else None
+            )
+        )
+
+        delete.pack(side="left")
+
+        self.chat_buttons[chat_id] = btn
+
+    # ------------------------------------
 
     def highlight_chat(self, chat_id):
 
-        for cid, button in self.chat_buttons.items():
+        for cid, btn in self.chat_buttons.items():
 
             if cid == chat_id:
-                button.configure(fg_color=("gray75", "gray30"))
+
+                btn.configure(
+                    fg_color="#2563EB"
+                )
+
             else:
-                button.configure(fg_color=("gray85", "gray20"))
+
+                btn.configure(
+                    fg_color=("gray85", "gray20")
+                )

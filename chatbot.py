@@ -1,48 +1,27 @@
-from responses import responses
-from jokes import random_joke
-from quotes import random_quote
-from calculator import calculate
-from datetime import datetime
+from ai import ask_gemini, stream_gemini
+from storage import load_chat
 
-username = "User"
 
-def get_response(user):
+def get_response(chat_id):
 
-    global username
+    chat = load_chat(chat_id)
 
-    user = user.lower().strip()
+    if chat is None:
+        return "Chat not found."
 
-    if user in ["bye", "exit"]:
-        return "Goodbye! 👋"
+    return ask_gemini(
+        chat["messages"]
+    )
 
-    elif user == "time":
-        return datetime.now().strftime("%I:%M %p")
 
-    elif user == "date":
-        return datetime.now().strftime("%d-%m-%Y")
+def stream_response(chat_id):
 
-    elif user == "day":
-        return datetime.now().strftime("%A")
+    chat = load_chat(chat_id)
 
-    elif user in ["joke", "jokes"]:
-        return random_joke()
+    if chat is None:
+        yield "Chat not found."
+        return
 
-    elif user in ["quote", "quotes"]:
-        return random_quote()
-
-    elif user == "calculator":
-        return "Example: calculate 10+20"
-
-    elif user.startswith("calculate"):
-        expression = user.replace("calculate", "").strip()
-        return calculate(expression)
-
-    elif user.startswith("my name is"):
-        username = user.replace("my name is", "").strip().title()
-        return f"Nice to meet you {username}! 😊"
-
-    elif user in responses:
-        return responses[user]
-
-    else:
-        return "Sorry, I don't understand."
+    yield from stream_gemini(
+        chat["messages"]
+    )

@@ -1,13 +1,20 @@
 import customtkinter as ctk
 import threading
-import time
 
-from chatbot import get_response
+import queue
+
+from chatbot import (
+    get_response,
+    stream_response
+)
 from storage import (
     create_chat,
     save_message,
     list_chats,
-    load_chat
+    load_chat,
+    get_last_chat,
+    rename_chat,
+    delete_chat
 )
 
 from components.sidebar import Sidebar
@@ -28,9 +35,13 @@ class KrishAIApp(ctk.CTk):
         self.geometry("1200x750")
         self.minsize(1100, 700)
 
-        self.current_chat = create_chat()
+        self.current_chat = get_last_chat()
+
+        if self.current_chat is None:
+            self.current_chat = create_chat()
 
         self.build_ui()
+        self.stream_queue = queue.Queue()
 
     # -------------------------------------------------
     # Build UI
@@ -43,7 +54,9 @@ class KrishAIApp(ctk.CTk):
 
         self.sidebar = Sidebar(
             self.main,
-            self.new_chat
+            self.new_chat,
+            self.rename_chat_dialog,
+            self.delete_chat_dialog
         )
 
         self.sidebar.pack(
@@ -59,16 +72,14 @@ class KrishAIApp(ctk.CTk):
             expand=True
         )
 
-        self.chat.add_bot_message(
-            "👋 Welcome to Krish AI Assistant!\nHow can I help you today?"
-        )
-
         self.input = InputBar(
             self.chat,
             self.send_message
         )
 
         self.refresh_sidebar()
+
+        self.load_chat(self.current_chat)
 
     # -------------------------------------------------
     # Sidebar
@@ -109,6 +120,12 @@ class KrishAIApp(ctk.CTk):
             chat["messages"]
         )
 
+        if len(chat["messages"]) == 0:
+
+            self.chat.add_bot_message(
+                "👋 Welcome to Krish AI Assistant!\nHow can I help you today?"
+            )
+
         self.refresh_sidebar()
 
     # -------------------------------------------------
@@ -117,32 +134,27 @@ class KrishAIApp(ctk.CTk):
 
     def send_message(self, message):
 
-        # Disable typing while bot replies
         self.input.disable()
 
-        # Show user message
         self.chat.add_user_message(message)
 
-        # Save message
         save_message(
             self.current_chat,
             "user",
             message
         )
 
-        # Update sidebar immediately
         self.refresh_sidebar()
 
-        # Typing bubble
         typing = self.chat.add_bot_message(
-            "Typing..."
+            "Thinking..."
         )
 
         def bot_reply():
 
-            time.sleep(1)
-
-            response = get_response(message)
+            response = get_response(
+                self.current_chat
+            )
 
             self.after(
                 0,
@@ -169,7 +181,9 @@ class KrishAIApp(ctk.CTk):
 
         typing_bubble.destroy()
 
-        self.chat.add_bot_message(response)
+        self.chat.add_bot_message(
+            response
+        )
 
         save_message(
             self.current_chat,
@@ -179,7 +193,6 @@ class KrishAIApp(ctk.CTk):
 
         self.refresh_sidebar()
 
-        # Enable typing again
         self.input.enable()
 
     # -------------------------------------------------
@@ -194,6 +207,52 @@ class KrishAIApp(ctk.CTk):
 
         self.chat.add_bot_message(
             "👋 New chat started!\nHow can I help you today?"
+        )
+
+        self.refresh_sidebar()
+
+    # -------------------------------------------------
+    # Rename Chat
+    # -------------------------------------------------
+
+    def rename_chat_dialog(self, chat_id):
+
+        dialog = ctk.CTkInputDialog(
+            title="Rename Chat",
+            text="Enter new chat title:"
+        )
+
+        title = dialog.get_input()
+
+        if title and title.strip():
+
+            rename_chat(
+                chat_id,
+                title.strip()
+            )
+
+            self.refresh_sidebar()
+
+    # -------------------------------------------------
+    # Delete Chat
+    # -------------------------------------------------
+
+    def delete_chat_dialog(self, chat_id):
+
+        delete_chat(chat_id)
+
+        chats = list_chats()
+
+        if chats:
+
+            self.current_chat = chats[0]["id"]
+
+        else:
+
+            self.current_chat = create_chat()
+
+        self.load_chat(
+            self.current_chat
         )
 
         self.refresh_sidebar()

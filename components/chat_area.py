@@ -7,26 +7,52 @@ class ChatArea(ctk.CTkFrame):
     def __init__(self, master):
         super().__init__(master)
 
-        title = ctk.CTkLabel(
+        # ----------------------------------------
+        # Title
+        # ----------------------------------------
+
+        self.title = ctk.CTkLabel(
             self,
             text="🤖 KRISH AI ASSISTANT",
             font=("Segoe UI", 28, "bold")
         )
 
-        title.pack(pady=20)
+        self.title.pack(
+            pady=(20, 10)
+        )
 
-        self.messages = ctk.CTkScrollableFrame(self)
+        # ----------------------------------------
+        # Messages
+        # ----------------------------------------
+
+        self.messages = ctk.CTkScrollableFrame(
+            self,
+            corner_radius=12
+        )
 
         self.messages.pack(
             fill="both",
             expand=True,
             padx=20,
-            pady=10
+            pady=(0, 15)
         )
 
-    # -----------------------------
-    # Bot Bubble
-    # -----------------------------
+    # ----------------------------------------
+    # Auto Scroll
+    # ----------------------------------------
+
+    def scroll_bottom(self):
+
+        self.update_idletasks()
+
+        try:
+            self.messages._parent_canvas.yview_moveto(1.0)
+        except Exception:
+            pass
+
+    # ----------------------------------------
+    # Bot Message
+    # ----------------------------------------
 
     def add_bot_message(self, message):
 
@@ -42,13 +68,13 @@ class ChatArea(ctk.CTkFrame):
             pady=5
         )
 
-        self.messages._parent_canvas.yview_moveto(1.0)
+        self.scroll_bottom()
 
         return bubble
 
-    # -----------------------------
-    # User Bubble
-    # -----------------------------
+    # ----------------------------------------
+    # User Message
+    # ----------------------------------------
 
     def add_user_message(self, message):
 
@@ -64,22 +90,33 @@ class ChatArea(ctk.CTkFrame):
             pady=5
         )
 
-        self.messages._parent_canvas.yview_moveto(1.0)
+        self.scroll_bottom()
 
         return bubble
 
-    # -----------------------------
-    # Clear Chat
-    # -----------------------------
+    # ----------------------------------------
+    # Update Existing Bubble
+    # (Needed for Streaming)
+    # ----------------------------------------
+
+    def update_message(self, bubble, text):
+
+        bubble.set_text(text)
+
+        self.scroll_bottom()
+
+    # ----------------------------------------
+    # Clear Messages
+    # ----------------------------------------
 
     def clear_messages(self):
 
         for widget in self.messages.winfo_children():
             widget.destroy()
 
-    # -----------------------------
-    # Load Messages
-    # -----------------------------
+    # ----------------------------------------
+    # Load Chat
+    # ----------------------------------------
 
     def load_messages(self, messages):
 
@@ -88,11 +125,15 @@ class ChatArea(ctk.CTkFrame):
         for msg in messages:
 
             if msg["sender"] == "user":
+
                 self.add_user_message(
                     msg["message"]
                 )
 
             else:
+
                 self.add_bot_message(
                     msg["message"]
                 )
+
+        self.scroll_bottom()

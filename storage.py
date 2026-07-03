@@ -8,21 +8,21 @@ DATA_FOLDER = "data/chats"
 os.makedirs(DATA_FOLDER, exist_ok=True)
 
 
+# --------------------------------------------------
+# Time
+# --------------------------------------------------
+
 def current_time():
-    return datetime.now().strftime("%Y-%m-%d %H:%M")
+    return datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
 
-# -----------------------------
+# --------------------------------------------------
 # Create Chat
-# -----------------------------
+# --------------------------------------------------
+
 def create_chat():
 
     chat_id = str(uuid.uuid4())[:8]
-
-    filename = os.path.join(
-        DATA_FOLDER,
-        f"{chat_id}.json"
-    )
 
     chat = {
         "title": "New Chat",
@@ -31,15 +31,35 @@ def create_chat():
         "messages": []
     }
 
-    with open(filename, "w", encoding="utf-8") as file:
-        json.dump(chat, file, indent=4)
+    save_chat(chat_id, chat)
 
     return chat_id
 
 
-# -----------------------------
+# --------------------------------------------------
+# Save Chat
+# --------------------------------------------------
+
+def save_chat(chat_id, chat):
+
+    filename = os.path.join(
+        DATA_FOLDER,
+        f"{chat_id}.json"
+    )
+
+    with open(filename, "w", encoding="utf-8") as file:
+        json.dump(
+            chat,
+            file,
+            indent=4,
+            ensure_ascii=False
+        )
+
+
+# --------------------------------------------------
 # Load Chat
-# -----------------------------
+# --------------------------------------------------
+
 def load_chat(chat_id):
 
     filename = os.path.join(
@@ -50,27 +70,20 @@ def load_chat(chat_id):
     if not os.path.exists(filename):
         return None
 
-    with open(filename, "r", encoding="utf-8") as file:
-        return json.load(file)
+    try:
+
+        with open(filename, "r", encoding="utf-8") as file:
+            return json.load(file)
+
+    except Exception:
+
+        return None
 
 
-# -----------------------------
-# Save Entire Chat
-# -----------------------------
-def save_chat(chat_id, chat):
+# --------------------------------------------------
+# Save Message
+# --------------------------------------------------
 
-    filename = os.path.join(
-        DATA_FOLDER,
-        f"{chat_id}.json"
-    )
-
-    with open(filename, "w", encoding="utf-8") as file:
-        json.dump(chat, file, indent=4)
-
-
-# -----------------------------
-# Save One Message
-# -----------------------------
 def save_message(chat_id, sender, message):
 
     chat = load_chat(chat_id)
@@ -85,36 +98,42 @@ def save_message(chat_id, sender, message):
 
     chat["updated_at"] = current_time()
 
-    # Automatically rename first chat
-    if chat["title"] == "New Chat" and sender == "user":
-        chat["title"] = message[:30]
+    if (
+        sender == "user"
+        and chat["title"] == "New Chat"
+    ):
+        chat["title"] = message[:40]
 
     save_chat(chat_id, chat)
 
 
-# -----------------------------
+# --------------------------------------------------
 # List Chats
-# -----------------------------
+# --------------------------------------------------
+
 def list_chats():
 
     chats = []
 
     for filename in os.listdir(DATA_FOLDER):
 
-        if filename.endswith(".json"):
+        if not filename.endswith(".json"):
+            continue
 
-            chat_id = filename.replace(".json", "")
+        chat_id = filename[:-5]
 
-            chat = load_chat(chat_id)
+        chat = load_chat(chat_id)
 
-            if chat:
+        if chat is None:
+            continue
 
-                chats.append({
-                    "id": chat_id,
-                    "title": chat.get("title", "New Chat"),
-                    "created_at": chat.get("created_at", ""),
-                    "updated_at": chat.get("updated_at", "")
-                })
+        chats.append({
+            "id": chat_id,
+            "title": chat.get("title", "New Chat"),
+            "created_at": chat.get("created_at", ""),
+            "updated_at": chat.get("updated_at", ""),
+            "message_count": len(chat.get("messages", []))
+        })
 
     chats.sort(
         key=lambda x: x["updated_at"],
@@ -124,25 +143,41 @@ def list_chats():
     return chats
 
 
-# -----------------------------
+# --------------------------------------------------
+# Latest Chat
+# --------------------------------------------------
+
+def get_last_chat():
+
+    chats = list_chats()
+
+    if chats:
+        return chats[0]["id"]
+
+    return None
+
+
+# --------------------------------------------------
 # Rename Chat
-# -----------------------------
-def rename_chat(chat_id, new_title):
+# --------------------------------------------------
+
+def rename_chat(chat_id, title):
 
     chat = load_chat(chat_id)
 
     if chat is None:
         return
 
-    chat["title"] = new_title
+    chat["title"] = title
     chat["updated_at"] = current_time()
 
     save_chat(chat_id, chat)
 
 
-# -----------------------------
+# --------------------------------------------------
 # Delete Chat
-# -----------------------------
+# --------------------------------------------------
+
 def delete_chat(chat_id):
 
     filename = os.path.join(
@@ -154,9 +189,15 @@ def delete_chat(chat_id):
         os.remove(filename)
 
 
-# -----------------------------
-# Get Chat Info
-# -----------------------------
-def get_chat(chat_id):
+# --------------------------------------------------
+# Chat Exists
+# --------------------------------------------------
 
-    return load_chat(chat_id)
+def chat_exists(chat_id):
+
+    filename = os.path.join(
+        DATA_FOLDER,
+        f"{chat_id}.json"
+    )
+
+    return os.path.exists(filename)
