@@ -2,7 +2,7 @@ import os
 
 from dotenv import load_dotenv
 from google import genai
-
+from PIL import Image
 # --------------------------------------------------
 # Load Environment
 # --------------------------------------------------
@@ -122,3 +122,55 @@ def stream_gemini(history, pdf_text=None):
     except Exception as e:
 
         yield f"❌ Gemini Error:\n\n{e}"
+
+
+        # --------------------------------------------------
+# Vision Response
+# --------------------------------------------------
+
+def ask_gemini_image(image_path, prompt):
+
+    try:
+
+        image = Image.open(image_path)
+
+        response = client.models.generate_content(
+            model="gemini-2.5-flash",
+            contents=[
+                prompt,
+                image
+            ]
+        )
+
+        return response.text
+
+    except Exception as e:
+
+        return f"❌ Gemini Vision Error:\n\n{e}"
+    
+    # --------------------------------------------------
+# Vision Streaming
+# --------------------------------------------------
+
+def stream_gemini_image(image_path, prompt):
+
+    try:
+
+        image = Image.open(image_path)
+
+        stream = client.models.generate_content_stream(
+            model="gemini-2.5-flash",
+            contents=[
+                prompt,
+                image
+            ]
+        )
+
+        for chunk in stream:
+
+            if chunk.text:
+                yield chunk.text
+
+    except Exception as e:
+
+        yield f"❌ Gemini Vision Error:\n\n{e}"

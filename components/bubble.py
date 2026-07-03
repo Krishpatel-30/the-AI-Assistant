@@ -1,6 +1,6 @@
 import customtkinter as ctk
 from datetime import datetime
-
+from components.markdown_renderer import MarkdownRenderer
 from components.code_block import CodeBlock
 
 
@@ -11,7 +11,7 @@ class ChatBubble(ctk.CTkFrame):
 
         self.sender = sender
         self.message = message
-
+        self.markdown = MarkdownRenderer()
         self.current_time = datetime.now().strftime("%H:%M")
 
         # ---------------------------------
@@ -102,7 +102,7 @@ class ChatBubble(ctk.CTkFrame):
         # Render message
 
         self.set_text(message)
-
+        message = self.markdown.render(message)
             # =====================================================
     # Render Message
     # =====================================================

@@ -8,7 +8,8 @@ class InputBar(ctk.CTkFrame):
         self,
         master,
         send_callback,
-        pdf_callback=None
+        pdf_callback=None,
+        image_callback=None
     ):
         super().__init__(master)
 
@@ -16,6 +17,7 @@ class InputBar(ctk.CTkFrame):
 
         self.send_callback = send_callback
         self.pdf_callback = pdf_callback
+        self.image_callback = image_callback
 
         # --------------------------------
         # Message Box
@@ -73,6 +75,22 @@ class InputBar(ctk.CTkFrame):
         )
 
         # --------------------------------
+        # Image Upload
+        # --------------------------------
+
+        self.image_btn = ctk.CTkButton(
+            self,
+            text="🖼️",
+            width=45,
+            command=self.attach_image
+        )
+
+        self.image_btn.pack(
+            side="left",
+            padx=4
+        )
+
+        # --------------------------------
         # Voice
         # --------------------------------
 
@@ -88,7 +106,7 @@ class InputBar(ctk.CTkFrame):
         )
 
         # --------------------------------
-        # Web Search Switch
+        # Web Search
         # --------------------------------
 
         self.web_switch = ctk.CTkSwitch(
@@ -119,22 +137,22 @@ class InputBar(ctk.CTkFrame):
 
         self.entry.focus()
 
-    # --------------------------------
+    # =====================================================
+    # Web Search
+    # =====================================================
 
     def is_web_enabled(self):
 
-        return bool(
-            self.web_switch.get()
-        )
+        return bool(self.web_switch.get())
 
-    # --------------------------------
+    # =====================================================
+    # PDF Upload
+    # =====================================================
 
     def attach_pdf(self):
 
         file_path = filedialog.askopenfilename(
-
             title="Select PDF",
-
             filetypes=[
                 ("PDF Files", "*.pdf")
             ]
@@ -144,21 +162,44 @@ class InputBar(ctk.CTkFrame):
             return
 
         if self.pdf_callback:
-
             self.pdf_callback(file_path)
 
         messagebox.showinfo(
-
             "PDF Loaded",
-
             "PDF loaded successfully."
-
         )
 
-    # --------------------------------
+    # =====================================================
+    # Image Upload
+    # =====================================================
+
+    def attach_image(self):
+
+        file_path = filedialog.askopenfilename(
+            title="Select Image",
+            filetypes=[
+                ("Image Files", "*.png *.jpg *.jpeg *.bmp *.gif *.webp")
+            ]
+        )
+
+        if not file_path:
+            return
+
+        if self.image_callback:
+            self.image_callback(file_path)
+
+        messagebox.showinfo(
+            "Image Loaded",
+            "Image loaded successfully."
+        )
+
+    # =====================================================
+    # ENTER KEY
+    # =====================================================
 
     def on_enter(self, event):
 
+        # Shift + Enter = New Line
         if event.state & 0x0001:
             return
 
@@ -166,7 +207,9 @@ class InputBar(ctk.CTkFrame):
 
         return "break"
 
-    # --------------------------------
+    # =====================================================
+    # Send Message
+    # =====================================================
 
     def send(self):
 
@@ -187,28 +230,40 @@ class InputBar(ctk.CTkFrame):
 
         self.send_callback(message)
 
-    # --------------------------------
+    # =====================================================
+    # Disable
+    # =====================================================
 
     def disable(self):
 
-        self.entry.configure(
-            state="disabled"
-        )
+        self.entry.configure(state="disabled")
 
-        self.send_btn.configure(
-            state="disabled"
-        )
+        self.send_btn.configure(state="disabled")
 
-    # --------------------------------
+        self.attach_btn.configure(state="disabled")
+
+        self.image_btn.configure(state="disabled")
+
+        self.voice_btn.configure(state="disabled")
+
+        self.web_switch.configure(state="disabled")
+
+    # =====================================================
+    # Enable
+    # =====================================================
 
     def enable(self):
 
-        self.entry.configure(
-            state="normal"
-        )
+        self.entry.configure(state="normal")
 
-        self.send_btn.configure(
-            state="normal"
-        )
+        self.send_btn.configure(state="normal")
+
+        self.attach_btn.configure(state="normal")
+
+        self.image_btn.configure(state="normal")
+
+        self.voice_btn.configure(state="normal")
+
+        self.web_switch.configure(state="normal")
 
         self.entry.focus()
