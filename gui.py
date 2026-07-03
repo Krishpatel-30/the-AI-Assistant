@@ -1,6 +1,7 @@
 import customtkinter as ctk
 import threading
-
+from pdf_chat import PDFChat
+import os
 import queue
 
 from chatbot import (
@@ -40,8 +41,10 @@ class KrishAIApp(ctk.CTk):
         if self.current_chat is None:
             self.current_chat = create_chat()
 
-        self.build_ui()
         self.stream_queue = queue.Queue()
+        self.pdf = PDFChat()
+
+        self.build_ui()
 
     # -------------------------------------------------
     # Build UI
@@ -73,10 +76,11 @@ class KrishAIApp(ctk.CTk):
         )
 
         self.input = InputBar(
-            self.chat,
-            self.send_message
+        self.chat,
+            self.send_message,
+            self.load_pdf
         )
-
+        
         self.refresh_sidebar()
 
         self.load_chat(self.current_chat)
@@ -128,6 +132,30 @@ class KrishAIApp(ctk.CTk):
 
         self.refresh_sidebar()
 
+            # -------------------------------------------------
+    # Load PDF
+    # -------------------------------------------------
+
+    def load_pdf(self, file_path):
+
+        try:
+
+            pages = self.pdf.load_pdf(file_path)
+
+            filename = os.path.basename(file_path)
+
+            self.chat.add_bot_message(
+                f"📄 PDF Loaded Successfully!\n\n"
+                f"File: {filename}\n"
+                f"Pages: {pages}\n\n"
+                "You can now ask questions about this PDF."
+            )
+
+        except Exception as e:
+
+            self.chat.add_bot_message(
+                f"❌ Failed to load PDF.\n\n{e}"
+            )
     # -------------------------------------------------
     # Send Message
     # -------------------------------------------------
@@ -150,50 +178,75 @@ class KrishAIApp(ctk.CTk):
             "Thinking..."
         )
 
-        def bot_reply():
+    def bot_reply():
+
+           
+
+
+        # -----------------------------
+        # PDF Mode (Highest Priority)
+        # -----------------------------
+        if self.pdf.is_loaded():
+
+            context = self.pdf.get_context(message)
 
             response = get_response(
-                self.current_chat
+                self.current_chat,
+                pdf_text=context
+            )
+
+        # -----------------------------
+        # Web Search Mode
+        # -----------------------------
+        elif self.input.is_web_enabled():
+
+            response = get_response(
+            self.current_chat,
+            use_web=True,
+            user_question=message
+            )
+
+        # -----------------------------
+        # Normal Chat
+        # -----------------------------
+        else:
+
+            response = get_response(
+            self.current_chat
             )
 
             self.after(
-                0,
-                lambda: self.finish_reply(
-                    typing,
-                    response
-                )
+            0,
+            lambda: self.finish_reply(
+                typing,
+                response
+            )
+        )
+        # -------------------------------------------------
+        # Finish Reply
+        # -------------------------------------------------
+
+        def finish_reply(
+            self,
+            typing_bubble,
+            response
+        ):
+
+            typing_bubble.destroy()
+
+            self.chat.add_bot_message(
+                response
             )
 
-        threading.Thread(
-            target=bot_reply,
-            daemon=True
-        ).start()
+            save_message(
+                self.current_chat,
+                "bot",
+                response
+            )
 
-    # -------------------------------------------------
-    # Finish Reply
-    # -------------------------------------------------
+            self.refresh_sidebar()
 
-    def finish_reply(
-        self,
-        typing_bubble,
-        response
-    ):
-
-        typing_bubble.destroy()
-
-        self.chat.add_bot_message(
-            response
-        )
-
-        save_message(
-            self.current_chat,
-            "bot",
-            response
-        )
-
-        self.refresh_sidebar()
-
-        self.input.enable()
+            self.input.enable()
 
     # -------------------------------------------------
     # New Chat

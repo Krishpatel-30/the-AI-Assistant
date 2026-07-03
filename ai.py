@@ -30,21 +30,41 @@ Rules:
 - Format code inside Markdown code blocks.
 - Use bullet points where appropriate.
 - If you don't know something, say so instead of making it up.
+
+If PDF content is provided:
+- Answer ONLY using the PDF whenever possible.
+- If the answer is not in the PDF, clearly say that.
 """
 
 # --------------------------------------------------
 # Build Conversation
 # --------------------------------------------------
 
-def build_conversation(history):
+def build_conversation(history, pdf_text=None):
 
     conversation = SYSTEM_PROMPT + "\n\n"
+
+    if pdf_text:
+
+        conversation += (
+            "==============================\n"
+            "PDF DOCUMENT\n"
+            "==============================\n\n"
+        )
+
+        # Prevent sending extremely large PDFs
+        conversation += pdf_text[:50000]
+
+        conversation += (
+            "\n\n==============================\n"
+            "END OF PDF\n"
+            "==============================\n\n"
+        )
 
     for msg in history:
 
         if msg["sender"] == "user":
             conversation += f"User: {msg['message']}\n"
-
         else:
             conversation += f"Assistant: {msg['message']}\n"
 
@@ -55,9 +75,12 @@ def build_conversation(history):
 # Normal Response
 # --------------------------------------------------
 
-def ask_gemini(history):
+def ask_gemini(history, pdf_text=None):
 
-    conversation = build_conversation(history)
+    conversation = build_conversation(
+        history,
+        pdf_text
+    )
 
     try:
 
@@ -77,9 +100,12 @@ def ask_gemini(history):
 # Streaming Response
 # --------------------------------------------------
 
-def stream_gemini(history):
+def stream_gemini(history, pdf_text=None):
 
-    conversation = build_conversation(history)
+    conversation = build_conversation(
+        history,
+        pdf_text
+    )
 
     try:
 

@@ -1,4 +1,5 @@
 import customtkinter as ctk
+from windows.settings_window import SettingsWindow
 
 
 class Sidebar(ctk.CTkFrame):
@@ -29,6 +30,10 @@ class Sidebar(ctk.CTkFrame):
             font=("Segoe UI", 24, "bold")
         ).pack(pady=30)
 
+        # ----------------------------------
+        # New Chat
+        # ----------------------------------
+
         self.new_chat_btn = ctk.CTkButton(
             self,
             text="➕ New Chat",
@@ -41,6 +46,10 @@ class Sidebar(ctk.CTkFrame):
             padx=15,
             pady=10
         )
+
+        # ----------------------------------
+        # Recent Chats
+        # ----------------------------------
 
         ctk.CTkLabel(
             self,
@@ -59,10 +68,15 @@ class Sidebar(ctk.CTkFrame):
             padx=10
         )
 
+        # ----------------------------------
+        # Settings
+        # ----------------------------------
+
         self.settings_btn = ctk.CTkButton(
             self,
             text="⚙ Settings",
-            height=45
+            height=45,
+            command=self.open_settings
         )
 
         self.settings_btn.pack(
@@ -72,7 +86,13 @@ class Sidebar(ctk.CTkFrame):
             pady=20
         )
 
-    # ------------------------------------
+    # ----------------------------------
+
+    def open_settings(self):
+
+        SettingsWindow(self)
+
+    # ----------------------------------
 
     def clear_chat_list(self):
 
@@ -81,7 +101,7 @@ class Sidebar(ctk.CTkFrame):
         for widget in self.chat_list.winfo_children():
             widget.destroy()
 
-    # ------------------------------------
+    # ----------------------------------
 
     def add_chat_button(
         self,
@@ -145,11 +165,13 @@ class Sidebar(ctk.CTkFrame):
             )
         )
 
-        delete.pack(side="left")
+        delete.pack(
+            side="left"
+        )
 
         self.chat_buttons[chat_id] = btn
 
-    # ------------------------------------
+    # ----------------------------------
 
     def highlight_chat(self, chat_id):
 
