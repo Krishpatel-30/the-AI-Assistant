@@ -1,13 +1,15 @@
 import customtkinter as ctk
 import threading
-from pdf_chat import PDFChat
-import os
 import queue
+import os
+
+from pdf_chat import PDFChat
 
 from chatbot import (
     get_response,
     stream_response
 )
+
 from storage import (
     create_chat,
     save_message,
@@ -36,24 +38,34 @@ class KrishAIApp(ctk.CTk):
         self.geometry("1200x750")
         self.minsize(1100, 700)
 
+        # ----------------------------------------
+        # App State
+        # ----------------------------------------
+
+        self.stream_queue = queue.Queue()
+
+        self.pdf = PDFChat()
+
         self.current_chat = get_last_chat()
 
         if self.current_chat is None:
             self.current_chat = create_chat()
 
-        self.stream_queue = queue.Queue()
-        self.pdf = PDFChat()
-
         self.build_ui()
 
-    # -------------------------------------------------
-    # Build UI
-    # -------------------------------------------------
+    # ==========================================================
+    # BUILD UI
+    # ==========================================================
 
     def build_ui(self):
 
         self.main = ctk.CTkFrame(self)
-        self.main.pack(fill="both", expand=True)
+        self.main.pack(
+            fill="both",
+            expand=True
+        )
+
+        # ---------------- Sidebar ----------------
 
         self.sidebar = Sidebar(
             self.main,
@@ -67,7 +79,11 @@ class KrishAIApp(ctk.CTk):
             fill="y"
         )
 
-        self.chat = ChatArea(self.main)
+        # ---------------- Chat Area ----------------
+
+        self.chat = ChatArea(
+            self.main
+        )
 
         self.chat.pack(
             side="right",
@@ -75,19 +91,23 @@ class KrishAIApp(ctk.CTk):
             expand=True
         )
 
+        # ---------------- Input ----------------
+
         self.input = InputBar(
-        self.chat,
+            self.chat,
             self.send_message,
             self.load_pdf
         )
-        
+
         self.refresh_sidebar()
 
-        self.load_chat(self.current_chat)
+        self.load_chat(
+            self.current_chat
+        )
 
-    # -------------------------------------------------
-    # Sidebar
-    # -------------------------------------------------
+    # ==========================================================
+    # REFRESH SIDEBAR
+    # ==========================================================
 
     def refresh_sidebar(self):
 
@@ -107,9 +127,9 @@ class KrishAIApp(ctk.CTk):
             self.current_chat
         )
 
-    # -------------------------------------------------
-    # Load Chat
-    # -------------------------------------------------
+    # ==========================================================
+    # LOAD CHAT
+    # ==========================================================
 
     def load_chat(self, chat_id):
 
@@ -127,43 +147,57 @@ class KrishAIApp(ctk.CTk):
         if len(chat["messages"]) == 0:
 
             self.chat.add_bot_message(
-                "👋 Welcome to Krish AI Assistant!\nHow can I help you today?"
+                "👋 Welcome to Krish AI Assistant!\n\n"
+                "How can I help you today?"
             )
 
         self.refresh_sidebar()
 
-            # -------------------------------------------------
-    # Load PDF
-    # -------------------------------------------------
+    # ==========================================================
+    # LOAD PDF
+    # ==========================================================
 
     def load_pdf(self, file_path):
 
         try:
 
-            pages = self.pdf.load_pdf(file_path)
+            pages = self.pdf.load_pdf(
+                file_path
+            )
 
-            filename = os.path.basename(file_path)
+            filename = os.path.basename(
+                file_path
+            )
 
             self.chat.add_bot_message(
+
                 f"📄 PDF Loaded Successfully!\n\n"
-                f"File: {filename}\n"
-                f"Pages: {pages}\n\n"
+
+                f"File : {filename}\n"
+
+                f"Pages : {pages}\n\n"
+
                 "You can now ask questions about this PDF."
+
             )
 
         except Exception as e:
 
             self.chat.add_bot_message(
+
                 f"❌ Failed to load PDF.\n\n{e}"
+
             )
-    # -------------------------------------------------
-    # Send Message
-    # -------------------------------------------------
+
+                # ==========================================================
+    # SEND MESSAGE
+    # ==========================================================
 
     def send_message(self, message):
 
         self.input.disable()
 
+        # Show user message
         self.chat.add_user_message(message)
 
         save_message(
@@ -174,83 +208,105 @@ class KrishAIApp(ctk.CTk):
 
         self.refresh_sidebar()
 
-        typing = self.chat.add_bot_message(
-            "Thinking..."
-        )
+        # Empty bot bubble for streaming
+        self.current_bubble = self.chat.add_bot_message("")
 
-    def bot_reply():
+        threading.Thread(
+            target=self.stream_reply,
+            args=(message,),
+            daemon=True
+        ).start()
 
-           
 
+    # ==========================================================
+    # STREAM REPLY
+    # ==========================================================
 
-        # -----------------------------
-        # PDF Mode (Highest Priority)
-        # -----------------------------
-        if self.pdf.is_loaded():
+    def stream_reply(self, message):
 
-            context = self.pdf.get_context(message)
+        full_response = ""
 
-            response = get_response(
-                self.current_chat,
-                pdf_text=context
-            )
+        try:
 
-        # -----------------------------
-        # Web Search Mode
-        # -----------------------------
-        elif self.input.is_web_enabled():
+            # ---------------- PDF ----------------
 
-            response = get_response(
-            self.current_chat,
-            use_web=True,
-            user_question=message
-            )
+            if self.pdf.is_loaded():
 
-        # -----------------------------
-        # Normal Chat
-        # -----------------------------
-        else:
+                context = self.pdf.get_context(
+                    message
+                )
 
-            response = get_response(
-            self.current_chat
-            )
+                generator = stream_response(
+                    self.current_chat,
+                    pdf_text=context
+                )
+
+            # ---------------- Web ----------------
+
+            elif self.input.is_web_enabled():
+
+                generator = stream_response(
+                    self.current_chat,
+                    use_web=True,
+                    user_question=message
+                )
+
+            # ---------------- Normal ----------------
+
+            else:
+
+                generator = stream_response(
+                    self.current_chat
+                )
+
+            # ---------------- Stream ----------------
+
+            for chunk in generator:
+
+                full_response += chunk
+
+                self.after(
+                    0,
+                    lambda text=full_response:
+                    self.current_bubble.set_text(text)
+                )
 
             self.after(
-            0,
-            lambda: self.finish_reply(
-                typing,
-                response
+                0,
+                lambda:
+                self.finish_reply(full_response)
             )
-        )
-        # -------------------------------------------------
-        # Finish Reply
-        # -------------------------------------------------
 
-        def finish_reply(
-            self,
-            typing_bubble,
+        except Exception as e:
+
+            self.after(
+                0,
+                lambda:
+                self.finish_reply(
+                    f"❌ {e}"
+                )
+            )
+
+
+    # ==========================================================
+    # FINISH REPLY
+    # ==========================================================
+
+    def finish_reply(self, response):
+
+        save_message(
+            self.current_chat,
+            "bot",
             response
-        ):
+        )
 
-            typing_bubble.destroy()
+        self.refresh_sidebar()
 
-            self.chat.add_bot_message(
-                response
-            )
+        self.input.enable()
 
-            save_message(
-                self.current_chat,
-                "bot",
-                response
-            )
-
-            self.refresh_sidebar()
-
-            self.input.enable()
-
-    # -------------------------------------------------
-    # New Chat
-    # -------------------------------------------------
+            # ==========================================================
+    # NEW CHAT
+    # ==========================================================
 
     def new_chat(self):
 
@@ -259,36 +315,50 @@ class KrishAIApp(ctk.CTk):
         self.chat.clear_messages()
 
         self.chat.add_bot_message(
-            "👋 New chat started!\nHow can I help you today?"
+
+            "👋 New chat started!\n\n"
+
+            "How can I help you today?"
+
         )
 
         self.refresh_sidebar()
 
-    # -------------------------------------------------
-    # Rename Chat
-    # -------------------------------------------------
+    # ==========================================================
+    # RENAME CHAT
+    # ==========================================================
 
     def rename_chat_dialog(self, chat_id):
 
         dialog = ctk.CTkInputDialog(
+
             title="Rename Chat",
-            text="Enter new chat title:"
+
+            text="Enter a new title"
+
         )
 
         title = dialog.get_input()
 
-        if title and title.strip():
+        if title:
 
-            rename_chat(
-                chat_id,
-                title.strip()
-            )
+            title = title.strip()
 
-            self.refresh_sidebar()
+            if title:
 
-    # -------------------------------------------------
-    # Delete Chat
-    # -------------------------------------------------
+                rename_chat(
+
+                    chat_id,
+
+                    title
+
+                )
+
+                self.refresh_sidebar()
+
+    # ==========================================================
+    # DELETE CHAT
+    # ==========================================================
 
     def delete_chat_dialog(self, chat_id):
 
@@ -305,7 +375,111 @@ class KrishAIApp(ctk.CTk):
             self.current_chat = create_chat()
 
         self.load_chat(
+
             self.current_chat
+
         )
 
-        self.refresh_sidebar()
+    # ==========================================================
+    # CLEAR CURRENT CHAT
+    # ==========================================================
+
+    def clear_current_chat(self):
+
+        self.chat.clear_messages()
+
+        self.chat.add_bot_message(
+
+            "🗑 Chat cleared."
+
+        )
+
+    # ==========================================================
+    # EXPORT CHAT
+    # ==========================================================
+
+    def export_chat(self):
+
+        chat = load_chat(
+
+            self.current_chat
+
+        )
+
+        if chat is None:
+
+            return
+
+        filename = f"{self.current_chat}.txt"
+
+        with open(
+
+            filename,
+
+            "w",
+
+            encoding="utf-8"
+
+        ) as file:
+
+            for msg in chat["messages"]:
+
+                sender = msg["sender"].capitalize()
+
+                file.write(
+
+                    f"{sender}: "
+
+                    f"{msg['message']}\n\n"
+
+                )
+
+        self.chat.add_bot_message(
+
+            f"✅ Chat exported as\n{filename}"
+
+        )
+
+    # ==========================================================
+    # COPY LAST RESPONSE
+    # ==========================================================
+
+    def copy_last_response(self):
+
+        chat = load_chat(
+
+            self.current_chat
+
+        )
+
+        if chat is None:
+
+            return
+
+        messages = chat["messages"]
+
+        for msg in reversed(messages):
+
+            if msg["sender"] == "bot":
+
+                self.clipboard_clear()
+
+                self.clipboard_append(
+
+                    msg["message"]
+
+                )
+
+                break
+
+    # ==========================================================
+    # STOP STREAM
+    # ==========================================================
+
+    def stop_stream(self):
+
+        self.stream_queue.put(
+
+            "__STOP__"
+
+        )
